@@ -1,0 +1,20 @@
+Request → main.py (FastAPI app)
+            → routers/stocks.py (route + get_db_session from database.py)
+                 → schemas (validate request, shape response)
+                 → models (Stock) + AsyncSession (from database.py)
+                 → database (actual queries)
+            → Response (using schemas)
+
+
+core = config + logger
+models = DB tables
+schemas = API in/out
+routers = URL → logic
+database.py = engine, session, init, get_db_session
+main.py = create app, init DB, mount routers, health route
+
+
+okay let get to our business.
+I have 4 tables in schema classification 
+macro_economic_sectors, sectors, industriesm, basoc industries.
+I need to expose a API to retrieve and send these as response. can you show me a design and the sample request and response youare planning to do
