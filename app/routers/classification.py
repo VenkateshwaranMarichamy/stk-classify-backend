@@ -18,7 +18,13 @@ from app.schemas.classification import (
     DropdownDataResponse,
     IndustryResponse,
     MacroEconomicSectorResponse,
+    StockByBasicIndustryItem,
+    StocksByBasicIndustryResponse,
     SectorResponse,
+)
+from app.services.classification import (
+    CompanyClassificationQueryError,
+    fetch_stocks_by_basic_ind_code,
 )
 from app.core.logger import get_logger
 
@@ -183,3 +189,38 @@ async def get_basic_industry(
     if not row:
         raise HTTPException(status_code=404, detail="Basic industry not found")
     return row
+
+
+@router.get("/stocks", response_model=StocksByBasicIndustryResponse)
+async def get_stocks_by_basic_industry(
+    basic_ind_code: Optional[str] = Query(
+        None,
+        description="Basic industry code used to fetch matching stocks",
+    ),
+    db: AsyncSession = Depends(get_db_session),
+) -> StocksByBasicIndustryResponse:
+    """Return stocks mapped to a basic industry code."""
+    if basic_ind_code is None or not basic_ind_code.strip():
+        raise HTTPException(status_code=400, detail="basic_ind_code is required")
+
+    normalized_basic_ind_code = basic_ind_code.strip()
+
+    try:
+        rows = await fetch_stocks_by_basic_ind_code(db, normalized_basic_ind_code)
+    except CompanyClassificationQueryError:
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to fetch stocks for the given basic_ind_code",
+        )
+
+    if not rows:
+        raise HTTPException(
+            status_code=404,
+            detail="No stocks found for the given basic_ind_code",
+        )
+
+    return StocksByBasicIndustryResponse(
+        basic_ind_code=normalized_basic_ind_code,
+        count=len(rows),
+        data=[StockByBasicIndustryItem(**row) for row in rows],
+    )

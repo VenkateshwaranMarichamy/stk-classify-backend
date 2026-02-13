@@ -54,6 +54,23 @@ class DropdownDataResponse(BaseModel):
     basic_industries: List[BasicIndustryResponse]
 
 
+class StockByBasicIndustryItem(BaseModel):
+    """Stock row returned for a basic industry code."""
+
+    company_id: int | None
+    company_name: str
+    comments: str | None
+    market_cap_category: str | None
+
+
+class StocksByBasicIndustryResponse(BaseModel):
+    """Response envelope for stocks under a basic industry code."""
+
+    basic_ind_code: str
+    count: int
+    data: List[StockByBasicIndustryItem]
+
+
 class ListEnvelope(BaseModel):
     """Envelope for list endpoints: data + count (optional total)."""
 
