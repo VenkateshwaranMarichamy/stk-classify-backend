@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,16 +15,23 @@ from app.models.classification import (
 )
 from app.schemas.classification import (
     BasicIndustryResponse,
+    CompanyClassificationUpdateRequest,
+    CompanyClassificationUpdateResponse,
     DropdownDataResponse,
     IndustryResponse,
     MacroEconomicSectorResponse,
     StockByBasicIndustryItem,
+    PaginatedStocksByBasicIndustryResponse,
     StocksByBasicIndustryResponse,
     SectorResponse,
 )
 from app.services.classification import (
+    CompanyClassificationNameMismatchError,
     CompanyClassificationQueryError,
+    CompanyClassificationUpdateError,
     fetch_stocks_by_basic_ind_code,
+    fetch_stocks_by_basic_ind_code_paginated,
+    update_stock_classification_by_company_id,
 )
 from app.core.logger import get_logger
 
@@ -224,3 +231,78 @@ async def get_stocks_by_basic_industry(
         count=len(rows),
         data=[StockByBasicIndustryItem(**row) for row in rows],
     )
+
+
+@router.get("/stocks/paginated", response_model=PaginatedStocksByBasicIndustryResponse)
+async def get_stocks_by_basic_industry_paginated(
+    basic_ind_code: Optional[str] = Query(
+        None,
+        description="Basic industry code used to fetch matching stocks",
+    ),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(20, ge=1, le=200, description="Number of items per page"),
+    db: AsyncSession = Depends(get_db_session),
+) -> PaginatedStocksByBasicIndustryResponse:
+    """Return paginated stocks mapped to a basic industry code."""
+    if basic_ind_code is None or not basic_ind_code.strip():
+        raise HTTPException(status_code=400, detail="basic_ind_code is required")
+
+    normalized_basic_ind_code = basic_ind_code.strip()
+    offset = (page - 1) * page_size
+
+    try:
+        rows, total = await fetch_stocks_by_basic_ind_code_paginated(
+            db=db,
+            basic_ind_code=normalized_basic_ind_code,
+            offset=offset,
+            limit=page_size,
+        )
+    except CompanyClassificationQueryError:
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to fetch stocks for the given basic_ind_code",
+        )
+
+    if total == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="No stocks found for the given basic_ind_code",
+        )
+
+    return PaginatedStocksByBasicIndustryResponse(
+        basic_ind_code=normalized_basic_ind_code,
+        page=page,
+        page_size=page_size,
+        count=len(rows),
+        total=total,
+        data=[StockByBasicIndustryItem(**row) for row in rows],
+    )
+
+
+@router.put("/stocks/{company_id}", response_model=CompanyClassificationUpdateResponse)
+async def update_stock_classification(
+    payload: CompanyClassificationUpdateRequest,
+    company_id: int = Path(..., ge=1, description="Company ID"),
+    db: AsyncSession = Depends(get_db_session),
+) -> CompanyClassificationUpdateResponse:
+    """Update basic_ind_code and market_cap_category for one company."""
+    try:
+        updated_row = await update_stock_classification_by_company_id(
+            db=db,
+            company_id=company_id,
+            company_name=payload.company_name,
+            basic_ind_code=payload.basic_ind_code,
+            market_cap_category=payload.market_cap_category,
+        )
+    except CompanyClassificationNameMismatchError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except CompanyClassificationUpdateError:
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to update stock classification",
+        )
+
+    if updated_row is None:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    return CompanyClassificationUpdateResponse(**updated_row)
