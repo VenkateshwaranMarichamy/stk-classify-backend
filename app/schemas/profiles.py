@@ -22,6 +22,9 @@ class StockProfileResponse(BaseModel):
     ownership_type: Optional[str]
     keynotes: Optional[List[str]]
     clients: Optional[List[str]]
+    parent_companies: Optional[List[int]]
+    subsidiaries: Optional[List[int]]
+    products: Optional[List[str]]
 
 
 class StockProfilePatchRequest(BaseModel):
@@ -35,13 +38,16 @@ class StockProfilePatchRequest(BaseModel):
     ownership_type: Optional[OwnershipType] = None
     keynotes: Optional[List[str]] = None
     clients: Optional[List[str]] = None
+    parent_companies: Optional[List[int]] = None
+    subsidiaries: Optional[List[int]] = None
+    products: Optional[List[str]] = None
 
     @field_validator("business_group", "information", "risk_level", mode="before")
     @classmethod
     def strip_strings(cls, v: Optional[str]) -> Optional[str]:
         return v.strip() if isinstance(v, str) else v
 
-    @field_validator("associated_brands", "location", "keynotes", "clients", mode="before")
+    @field_validator("associated_brands", "location", "keynotes", "clients", "products", mode="before")
     @classmethod
     def strip_array_items(cls, v: Optional[List[str]]) -> Optional[List[str]]:
         if v is None:

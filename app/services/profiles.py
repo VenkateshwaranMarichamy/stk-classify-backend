@@ -14,7 +14,7 @@ _SELECT = """
     SELECT
         id, stock_name, associated_brands, business_group,
         information, risk_level, location, ownership_type,
-        keynotes, clients, created_at, updated_at
+        keynotes, clients, parent_companies, subsidiaries, products
     FROM classification.stock_profiles
     WHERE id = :id
 """
@@ -46,6 +46,9 @@ async def patch_profile(
     ownership_type: Optional[str],
     keynotes: Optional[list[str]],
     clients: Optional[list[str]],
+    parent_companies: Optional[list[int]],
+    subsidiaries: Optional[list[int]],
+    products: Optional[list[str]],
 ) -> Optional[dict]:
     """
     Update only the supplied fields via COALESCE, always bump updated_at.
@@ -63,12 +66,15 @@ async def patch_profile(
             ownership_type    = COALESCE(:ownership_type,    ownership_type),
             keynotes          = COALESCE(:keynotes,          keynotes),
             clients           = COALESCE(:clients,           clients),
+            parent_companies  = COALESCE(:parent_companies,  parent_companies),
+            subsidiaries      = COALESCE(:subsidiaries,      subsidiaries),
+            products          = COALESCE(:products,          products),
             updated_at        = CURRENT_TIMESTAMP
         WHERE id = :id
         RETURNING
             id, stock_name, associated_brands, business_group,
             information, risk_level, location, ownership_type,
-            keynotes, clients, created_at, updated_at
+            keynotes, clients, parent_companies, subsidiaries, products
         """
     )
     try:
@@ -84,6 +90,9 @@ async def patch_profile(
                 "ownership_type": ownership_type,
                 "keynotes": keynotes,
                 "clients": clients,
+                "parent_companies": parent_companies,
+                "subsidiaries": subsidiaries,
+                "products": products,
             },
         )
         row = result.mappings().one_or_none()

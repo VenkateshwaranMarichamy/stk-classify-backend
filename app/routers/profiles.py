@@ -49,6 +49,9 @@ async def update_profile(
             ownership_type=payload.ownership_type,
             keynotes=payload.keynotes,
             clients=payload.clients,
+            parent_companies=payload.parent_companies,
+            subsidiaries=payload.subsidiaries,
+            products=payload.products,
         )
     except ProfileQueryError:
         raise HTTPException(status_code=500, detail="Failed to update profile")
