@@ -45,7 +45,7 @@ async def fetch_stocks_by_basic_ind_code(
     db: AsyncSession,
     basic_ind_code: str,
 ) -> list[CompanyClassificationRow]:
-    """Fetch stocks for a basic industry code from classification.company_classification."""
+    """Fetch active stocks for a basic industry code from classification.company_classification."""
     stmt = text(
         """
         SELECT
@@ -55,6 +55,9 @@ async def fetch_stocks_by_basic_ind_code(
             market_cap_category
         FROM classification.company_classification
         WHERE basic_ind_code = :basic_ind_code
+          AND company_id IN (
+              SELECT id FROM classification.ticker_symbol WHERE is_active = true
+          )
         ORDER BY company_name
         """
     )
@@ -91,6 +94,9 @@ async def fetch_stocks_by_basic_ind_code_paginated(
         SELECT COUNT(*) AS total
         FROM classification.company_classification
         WHERE basic_ind_code = :basic_ind_code
+          AND company_id IN (
+              SELECT id FROM classification.ticker_symbol WHERE is_active = true
+          )
         """
     )
 
@@ -103,6 +109,9 @@ async def fetch_stocks_by_basic_ind_code_paginated(
             market_cap_category
         FROM classification.company_classification
         WHERE basic_ind_code = :basic_ind_code
+          AND company_id IN (
+              SELECT id FROM classification.ticker_symbol WHERE is_active = true
+          )
         ORDER BY company_name
         LIMIT :limit OFFSET :offset
         """

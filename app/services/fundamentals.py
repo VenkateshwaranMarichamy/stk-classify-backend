@@ -42,6 +42,9 @@ async def fetch_peer_years(
         FROM fundamentals.stock_fundamentals_annual_display f
         WHERE f.basic_ind_code = :basic_ind_code
           AND f.financial_year IS NOT NULL
+          AND f.stock_id IN (
+              SELECT id FROM classification.ticker_symbol WHERE is_active = true
+          )
         ORDER BY f.financial_year DESC
         """
     )
@@ -74,6 +77,9 @@ async def fetch_peers(
         FROM fundamentals.stock_fundamentals_annual_display
         WHERE basic_ind_code = :basic_ind_code
           AND financial_year = :financial_year
+          AND stock_id IN (
+              SELECT id FROM classification.ticker_symbol WHERE is_active = true
+          )
         """
     )
 
@@ -99,6 +105,9 @@ async def fetch_peers(
         FROM fundamentals.stock_fundamentals_annual_display
         WHERE basic_ind_code = :basic_ind_code
           AND financial_year = :financial_year
+          AND stock_id IN (
+              SELECT id FROM classification.ticker_symbol WHERE is_active = true
+          )
         ORDER BY {safe_sort_by} {safe_sort_dir} NULLS LAST
         LIMIT :limit OFFSET :offset
         """
