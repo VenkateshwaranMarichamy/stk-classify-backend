@@ -77,6 +77,15 @@ class PeerRow(BaseModel):
     has_cashflow: Optional[bool]
 
 
+class StockFundamentalsResponse(BaseModel):
+    """All annual fundamentals for a single stock."""
+
+    stock_id: int
+    stock_name: Optional[str]
+    count: int
+    rows: List[PeerRow]
+
+
 class PeersResponse(BaseModel):
     """Paginated peer comparison response."""
 

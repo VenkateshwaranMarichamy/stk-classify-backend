@@ -1,22 +1,45 @@
 """REST endpoints for fundamentals peer comparison."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import get_logger
 from app.database import get_db_session
-from app.schemas.fundamentals import PeerRow, PeerYearsResponse, PeersResponse
+from app.schemas.fundamentals import PeerRow, PeerYearsResponse, PeersResponse, StockFundamentalsResponse
 from app.services.fundamentals import (
     DEFAULT_SORT,
     SORTABLE_COLUMNS,
     FundamentalsQueryError,
     fetch_peer_years,
     fetch_peers,
+    fetch_stock_fundamentals,
 )
 
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/stock/{stock_id}", response_model=StockFundamentalsResponse)
+async def get_stock_fundamentals(
+    stock_id: int = Path(..., ge=1, description="Stock ID"),
+    db: AsyncSession = Depends(get_db_session),
+) -> StockFundamentalsResponse:
+    """Return all annual fundamentals for a single stock, newest year first."""
+    try:
+        rows = await fetch_stock_fundamentals(db, stock_id)
+    except FundamentalsQueryError:
+        raise HTTPException(status_code=500, detail="Failed to fetch stock fundamentals")
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="No fundamentals data found for this stock")
+
+    return StockFundamentalsResponse(
+        stock_id=stock_id,
+        stock_name=rows[0].get("stock_name"),
+        count=len(rows),
+        rows=[PeerRow(**row) for row in rows],
+    )
 
 
 @router.get("/peer-years", response_model=PeerYearsResponse)

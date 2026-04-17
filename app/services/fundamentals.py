@@ -26,6 +26,25 @@ SORTABLE_COLUMNS = {
 
 DEFAULT_SORT = "total_revenue"
 
+_FUNDAMENTALS_COLUMNS = """
+    stock_id,
+    stock_name,
+    financial_year,
+    CAST(financial_date AS TEXT) AS financial_date,
+    total_revenue, net_income, ebitda, free_cash_flow,
+    diluted_eps, book_value_per_share, fcf_per_share,
+    revenue_growth_pct, net_income_growth_pct, eps_growth_pct,
+    ebitda_growth_pct, fcf_growth_pct,
+    gross_margin_pct, operating_margin_pct, ebitda_margin_pct,
+    net_margin_pct, roa_pct, roe_pct, roic_pct, roce_pct,
+    receivables_turnover_x, inventory_turnover_x, payables_turnover_x,
+    debt_to_equity_x, debt_to_assets_pct, net_debt_to_ebitda_x,
+    interest_coverage_x, current_ratio_x, quick_ratio_x,
+    cash_flow_to_net_income_x, free_cash_flow_margin_pct,
+    capex_intensity_pct, cash_change,
+    has_balance_sheet, has_cashflow
+"""
+
 
 class FundamentalsQueryError(RuntimeError):
     """Raised when a fundamentals query fails."""
@@ -57,6 +76,28 @@ async def fetch_peer_years(
     return [str(row[0]) for row in result.fetchall()]
 
 
+async def fetch_stock_fundamentals(
+    db: AsyncSession,
+    stock_id: int,
+) -> list[dict]:
+    """Return all annual fundamentals rows for a single stock, newest year first."""
+    stmt = text(
+        f"""
+        SELECT {_FUNDAMENTALS_COLUMNS}
+        FROM fundamentals.stock_fundamentals_annual_display
+        WHERE stock_id = :stock_id
+        ORDER BY financial_year DESC
+        """
+    )
+    try:
+        result = await db.execute(stmt, {"stock_id": stock_id})
+    except SQLAlchemyError as exc:
+        logger.exception("Failed to fetch fundamentals for stock_id=%s", stock_id)
+        raise FundamentalsQueryError from exc
+
+    return [dict(row) for row in result.mappings().all()]
+
+
 async def fetch_peers(
     db: AsyncSession,
     basic_ind_code: str,
@@ -67,7 +108,6 @@ async def fetch_peers(
     sort_dir: str,
 ) -> tuple[list[dict], int]:
     """Return paginated peer rows and total count for a basic industry + year."""
-    # Validate sort column against whitelist
     safe_sort_by = sort_by if sort_by in SORTABLE_COLUMNS else DEFAULT_SORT
     safe_sort_dir = "DESC" if sort_dir.upper() == "DESC" else "ASC"
 
@@ -85,23 +125,7 @@ async def fetch_peers(
 
     rows_stmt = text(
         f"""
-        SELECT
-            stock_id,
-            stock_name,
-            financial_year,
-            CAST(financial_date AS TEXT) AS financial_date,
-            total_revenue, net_income, ebitda, free_cash_flow,
-            diluted_eps, book_value_per_share, fcf_per_share,
-            revenue_growth_pct, net_income_growth_pct, eps_growth_pct,
-            ebitda_growth_pct, fcf_growth_pct,
-            gross_margin_pct, operating_margin_pct, ebitda_margin_pct,
-            net_margin_pct, roa_pct, roe_pct, roic_pct, roce_pct,
-            receivables_turnover_x, inventory_turnover_x, payables_turnover_x,
-            debt_to_equity_x, debt_to_assets_pct, net_debt_to_ebitda_x,
-            interest_coverage_x, current_ratio_x, quick_ratio_x,
-            cash_flow_to_net_income_x, free_cash_flow_margin_pct,
-            capex_intensity_pct, cash_change,
-            has_balance_sheet, has_cashflow
+        SELECT {_FUNDAMENTALS_COLUMNS}
         FROM fundamentals.stock_fundamentals_annual_display
         WHERE basic_ind_code = :basic_ind_code
           AND financial_year = :financial_year
