@@ -26,14 +26,10 @@ class StockDetailResponse(BaseModel):
 
     # Classification
     company_name: Optional[str]
-    nse_symbol: Optional[str]
-    bse_code: Optional[str]
     basic_ind_code: Optional[str]
     basic_industry_name: Optional[str]
-    index_stock: Optional[str]
     market_cap_category: Optional[str]
     comments: Optional[str]
-    cutting_edge_products: Optional[str]
 
 
 class StockListResponse(BaseModel):

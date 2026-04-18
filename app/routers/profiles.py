@@ -52,6 +52,8 @@ async def update_profile(
             parent_companies=payload.parent_companies,
             subsidiaries=payload.subsidiaries,
             products=payload.products,
+            index_stock=payload.index_stock,
+            cutting_edge_products=payload.cutting_edge_products,
         )
     except ProfileQueryError:
         raise HTTPException(status_code=500, detail="Failed to update profile")

@@ -31,14 +31,10 @@ _SELECT = """
         ts.derivate_stock,
         ts.yfinance_ticker,
         cc.company_name,
-        cc.nse_symbol,
-        cc.bse_code,
         cc.basic_ind_code,
         bi.basic_industry_name,
-        cc.index_stock,
         cc.market_cap_category,
-        cc.comments,
-        cc.cutting_edge_products
+        cc.comments
     FROM classification.ticker_symbol ts
     LEFT JOIN classification.company_classification cc
            ON cc.company_id = ts.id

@@ -12,7 +12,7 @@ class StockProfileResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    stock_id: int
     stock_name: str
     associated_brands: Optional[List[str]]
     business_group: Optional[str]
@@ -25,6 +25,8 @@ class StockProfileResponse(BaseModel):
     parent_companies: Optional[List[int]]
     subsidiaries: Optional[List[int]]
     products: Optional[List[str]]
+    index_stock: Optional[List[str]]
+    cutting_edge_products: Optional[List[str]]
 
 
 class StockProfilePatchRequest(BaseModel):
@@ -41,13 +43,19 @@ class StockProfilePatchRequest(BaseModel):
     parent_companies: Optional[List[int]] = None
     subsidiaries: Optional[List[int]] = None
     products: Optional[List[str]] = None
+    index_stock: Optional[List[str]] = None
+    cutting_edge_products: Optional[List[str]] = None
 
     @field_validator("business_group", "information", "risk_level", mode="before")
     @classmethod
     def strip_strings(cls, v: Optional[str]) -> Optional[str]:
         return v.strip() if isinstance(v, str) else v
 
-    @field_validator("associated_brands", "location", "keynotes", "clients", "products", mode="before")
+    @field_validator(
+        "associated_brands", "location", "keynotes", "clients",
+        "products", "index_stock", "cutting_edge_products",
+        mode="before",
+    )
     @classmethod
     def strip_array_items(cls, v: Optional[List[str]]) -> Optional[List[str]]:
         if v is None:
