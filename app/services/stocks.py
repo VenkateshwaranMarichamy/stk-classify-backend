@@ -118,3 +118,79 @@ async def fetch_stocks(
         raise StockQueryError from exc
 
     return [dict(row) for row in result.mappings().all()], total
+
+
+class StockAlreadyClassifiedError(ValueError):
+    """Raised when a stock already has a classification row."""
+
+
+async def fetch_unclassified_stocks(
+    db: AsyncSession,
+) -> list[dict]:
+    """Return all stocks that have no entry in company_classification."""
+    stmt = text(
+        """
+        SELECT id, name, trading_symbol
+        FROM classification.ticker_symbol
+        WHERE id NOT IN (
+            SELECT company_id FROM classification.company_classification
+        )
+        ORDER BY id
+        """
+    )
+    try:
+        result = await db.execute(stmt)
+    except SQLAlchemyError as exc:
+        logger.exception("Failed to fetch unclassified stocks")
+        raise StockQueryError from exc
+
+    return [dict(row) for row in result.mappings().all()]
+
+
+async def classify_stock(
+    db: AsyncSession,
+    company_id: int,
+    company_name: str,
+    basic_ind_code: str,
+    market_cap_category: str,
+) -> dict:
+    """Insert a new row into company_classification. Raises if already classified."""
+    check_stmt = text(
+        """
+        SELECT 1 FROM classification.company_classification
+        WHERE company_id = :company_id
+        """
+    )
+    insert_stmt = text(
+        """
+        INSERT INTO classification.company_classification
+            (company_id, company_name, basic_ind_code, market_cap_category)
+        VALUES
+            (:company_id, :company_name, :basic_ind_code, :market_cap_category)
+        RETURNING company_id, company_name, basic_ind_code, market_cap_category
+        """
+    )
+    try:
+        existing = await db.execute(check_stmt, {"company_id": company_id})
+        if existing.one_or_none() is not None:
+            raise StockAlreadyClassifiedError(
+                f"Stock {company_id} is already classified"
+            )
+
+        result = await db.execute(
+            insert_stmt,
+            {
+                "company_id": company_id,
+                "company_name": company_name,
+                "basic_ind_code": basic_ind_code,
+                "market_cap_category": market_cap_category,
+            },
+        )
+        row = result.mappings().one()
+    except StockAlreadyClassifiedError:
+        raise
+    except SQLAlchemyError as exc:
+        logger.exception("Failed to classify stock company_id=%s", company_id)
+        raise StockQueryError from exc
+
+    return dict(row)

@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class StockDetailResponse(BaseModel):
@@ -40,3 +40,48 @@ class StockListResponse(BaseModel):
     total: int
     count: int
     data: List[StockDetailResponse]
+
+
+class UnclassifiedStockItem(BaseModel):
+    """Minimal stock row for unclassified stocks list."""
+
+    id: int
+    name: Optional[str]
+    trading_symbol: Optional[str]
+
+
+class UnclassifiedStocksResponse(BaseModel):
+    """List of unclassified stocks."""
+
+    total: int
+    data: List[UnclassifiedStockItem]
+
+
+class ClassifyStockRequest(BaseModel):
+    """Payload to classify a stock."""
+
+    company_name: str
+    basic_ind_code: str
+    market_cap_category: str
+
+    @field_validator("company_name", "basic_ind_code", "market_cap_category")
+    @classmethod
+    def non_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("must not be empty")
+        return v
+
+    @field_validator("market_cap_category")
+    @classmethod
+    def normalize_market_cap(cls, v: str) -> str:
+        return v.upper()
+
+
+class ClassifyStockResponse(BaseModel):
+    """Newly created classification row."""
+
+    company_id: int
+    company_name: str
+    basic_ind_code: str
+    market_cap_category: str
