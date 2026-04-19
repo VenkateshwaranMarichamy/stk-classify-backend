@@ -25,6 +25,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
+    description=(
+        "Stock classification and fundamentals API. "
+        "Provides hierarchy reference data, stock identity, qualitative profiles, "
+        "and annual financial peer comparison. "
+        "See `/docs` for full interactive documentation."
+    ),
     lifespan=lifespan,
 )
 

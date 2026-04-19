@@ -30,3 +30,6 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Internal docs (not for repo)
+docs/DB_INTERNALS.md
