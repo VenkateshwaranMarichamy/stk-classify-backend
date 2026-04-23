@@ -101,13 +101,24 @@ async def get_stock(
     return StockDetailResponse(**row)
 
 
-@router.post("/{stock_id}/classify", response_model=ClassifyStockResponse, status_code=201)
+@router.post(
+    "/{stock_id}/classify",
+    response_model=ClassifyStockResponse,
+    status_code=201,
+    summary="Classify a stock",
+    description=(
+        "Classifies a stock by inserting it into `company_classification` "
+        "and creating a matching skeleton row in `stock_profiles` (stock_id + stock_name). "
+        "Both inserts are atomic — if either fails the whole operation rolls back. "
+        "Returns `409` if the stock is already classified."
+    ),
+)
 async def classify_stock_endpoint(
     payload: ClassifyStockRequest,
     stock_id: int = Path(..., ge=1, description="Stock ID to classify"),
     db: AsyncSession = Depends(get_db_session),
 ) -> ClassifyStockResponse:
-    """Classify a stock by inserting it into company_classification."""
+    """Classify a stock — inserts into company_classification and creates a stock_profiles skeleton row."""
     try:
         row = await classify_stock(
             db=db,

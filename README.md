@@ -94,7 +94,7 @@ scripts/        seed scripts
 | GET | `/api/stocks/` | Paginated stock list. Filters: `?is_active=`, `?basic_ind_code=`, `?exchange=`, `?market_cap_category=` |
 | GET | `/api/stocks/unclassified` | All stocks not yet in `company_classification` |
 | GET | `/api/stocks/{stock_id}` | Full stock detail — ticker + classification info (active or inactive) |
-| POST | `/api/stocks/{stock_id}/classify` | Classify a stock (insert into `company_classification`) |
+| POST | `/api/stocks/{stock_id}/classify` | Classify a stock — inserts into `company_classification` and creates a `stock_profiles` skeleton row (atomic) |
 
 **POST `/api/stocks/{stock_id}/classify` payload:**
 ```json

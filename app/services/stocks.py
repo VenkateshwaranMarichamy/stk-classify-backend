@@ -154,20 +154,31 @@ async def classify_stock(
     basic_ind_code: str,
     market_cap_category: str,
 ) -> dict:
-    """Insert a new row into company_classification. Raises if already classified."""
+    """
+    Insert into company_classification and create a matching stock_profiles row.
+    Both inserts run in the same transaction — rolls back if either fails.
+    Raises StockAlreadyClassifiedError if already classified.
+    """
     check_stmt = text(
         """
         SELECT 1 FROM classification.company_classification
         WHERE company_id = :company_id
         """
     )
-    insert_stmt = text(
+    insert_cc_stmt = text(
         """
         INSERT INTO classification.company_classification
             (company_id, company_name, basic_ind_code, market_cap_category)
         VALUES
             (:company_id, :company_name, :basic_ind_code, :market_cap_category)
         RETURNING company_id, company_name, basic_ind_code, market_cap_category
+        """
+    )
+    insert_profile_stmt = text(
+        """
+        INSERT INTO classification.stock_profiles (stock_id, stock_name)
+        VALUES (:stock_id, :stock_name)
+        ON CONFLICT (stock_id) DO NOTHING
         """
     )
     try:
@@ -178,7 +189,7 @@ async def classify_stock(
             )
 
         result = await db.execute(
-            insert_stmt,
+            insert_cc_stmt,
             {
                 "company_id": company_id,
                 "company_name": company_name,
@@ -187,6 +198,12 @@ async def classify_stock(
             },
         )
         row = result.mappings().one()
+
+        await db.execute(
+            insert_profile_stmt,
+            {"stock_id": company_id, "stock_name": company_name},
+        )
+
     except StockAlreadyClassifiedError:
         raise
     except SQLAlchemyError as exc:
