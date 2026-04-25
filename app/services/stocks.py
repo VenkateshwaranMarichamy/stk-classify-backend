@@ -120,6 +120,53 @@ async def fetch_stocks(
     return [dict(row) for row in result.mappings().all()], total
 
 
+async def fetch_active_stocks(db: AsyncSession) -> list[dict]:
+    """Return all active stocks — id, name, trading_symbol."""
+    stmt = text(
+        """
+        SELECT id, name, trading_symbol AS symbol
+        FROM classification.ticker_symbol
+        WHERE is_active = true
+        ORDER BY name
+        """
+    )
+    try:
+        result = await db.execute(stmt)
+    except SQLAlchemyError as exc:
+        logger.exception("Failed to fetch active stocks")
+        raise StockQueryError from exc
+    return [dict(row) for row in result.mappings().all()]
+
+
+async def fetch_active_stocks_paginated(
+    db: AsyncSession,
+    offset: int,
+    limit: int,
+) -> tuple[list[dict], int]:
+    """Return paginated active stocks — id, name, trading_symbol."""
+    count_stmt = text(
+        "SELECT COUNT(*) FROM classification.ticker_symbol WHERE is_active = true"
+    )
+    rows_stmt = text(
+        """
+        SELECT id, name, trading_symbol AS symbol
+        FROM classification.ticker_symbol
+        WHERE is_active = true
+        ORDER BY name
+        LIMIT :limit OFFSET :offset
+        """
+    )
+    try:
+        total = int((await db.execute(count_stmt)).scalar() or 0)
+        if total == 0:
+            return [], 0
+        result = await db.execute(rows_stmt, {"limit": limit, "offset": offset})
+    except SQLAlchemyError as exc:
+        logger.exception("Failed to fetch paginated active stocks")
+        raise StockQueryError from exc
+    return [dict(row) for row in result.mappings().all()], total
+
+
 class StockAlreadyClassifiedError(ValueError):
     """Raised when a stock already has a classification row."""
 

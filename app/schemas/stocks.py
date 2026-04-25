@@ -32,6 +32,31 @@ class StockDetailResponse(BaseModel):
     comments: Optional[str]
 
 
+class ActiveStockItem(BaseModel):
+    """Minimal active stock row."""
+
+    id: int
+    name: Optional[str]
+    symbol: Optional[str]
+
+
+class ActiveStocksResponse(BaseModel):
+    """All active stocks."""
+
+    total: int
+    data: List[ActiveStockItem]
+
+
+class PaginatedActiveStocksResponse(BaseModel):
+    """Paginated active stocks."""
+
+    page: int
+    page_size: int
+    total: int
+    count: int
+    data: List[ActiveStockItem]
+
+
 class StockListResponse(BaseModel):
     """Paginated list of stocks."""
 

@@ -83,24 +83,18 @@ class PaginatedStocksByBasicIndustryResponse(BaseModel):
 
 
 class CompanyClassificationUpdateRequest(BaseModel):
-    """Payload for updating stock classification by company_id."""
+    """Payload for updating basic_ind_code for a stock."""
 
     company_name: str
     basic_ind_code: str
-    market_cap_category: str
 
-    @field_validator("company_name", "basic_ind_code", "market_cap_category")
+    @field_validator("company_name", "basic_ind_code")
     @classmethod
     def non_empty(cls, value: str) -> str:
         value = value.strip()
         if not value:
             raise ValueError("must not be empty")
         return value
-
-    @field_validator("market_cap_category")
-    @classmethod
-    def normalize_market_cap(cls, value: str) -> str:
-        return value.upper()
 
 
 class CompanyClassificationUpdateResponse(BaseModel):
@@ -109,7 +103,6 @@ class CompanyClassificationUpdateResponse(BaseModel):
     company_id: int
     company_name: str
     basic_ind_code: str
-    market_cap_category: str
 
 
 class ListEnvelope(BaseModel):

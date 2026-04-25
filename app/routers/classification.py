@@ -158,11 +158,20 @@ async def get_industry(
 # ---------- Basic Industries ----------
 
 
-@router.get("/basic-industries", response_model=dict)
+@router.get(
+    "/basic-industries",
+    response_model=dict,
+    summary="List basic industries",
+    description=(
+        "Returns all basic industries. Use `?ind_code=` to filter by parent industry. "
+        "There are ~198 basic industries total so pagination is available via `skip`/`limit` "
+        "but typically not needed — omit them to get all results."
+    ),
+)
 async def list_basic_industries(
-    ind_code: Optional[str] = Query(None, description="Filter by industry"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    ind_code: Optional[str] = Query(None, description="Filter by industry code"),
+    skip: int = Query(0, ge=0, description="Number of records to skip (default 0)"),
+    limit: int = Query(200, ge=1, le=200, description="Max records to return (default 200 = all)"),
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
     """List basic industries with optional filter and pagination."""
@@ -198,7 +207,16 @@ async def get_basic_industry(
     return row
 
 
-@router.get("/stocks", response_model=StocksByBasicIndustryResponse)
+@router.get(
+    "/stocks",
+    response_model=StocksByBasicIndustryResponse,
+    summary="Stocks by basic industry (active only)",
+    description=(
+        "Returns all active stocks for a given `basic_ind_code`. "
+        "Active status is determined by `classification.ticker_symbol.is_active = true`. "
+        "Data comes from `company_classification` joined with `ticker_symbol`."
+    ),
+)
 async def get_stocks_by_basic_industry(
     basic_ind_code: Optional[str] = Query(
         None,
@@ -233,7 +251,16 @@ async def get_stocks_by_basic_industry(
     )
 
 
-@router.get("/stocks/paginated", response_model=PaginatedStocksByBasicIndustryResponse)
+@router.get(
+    "/stocks/paginated",
+    response_model=PaginatedStocksByBasicIndustryResponse,
+    summary="Stocks by basic industry — paginated (active only)",
+    description=(
+        "Paginated version of `/stocks`. "
+        "Active status is determined by `classification.ticker_symbol.is_active = true`. "
+        "Data comes from `company_classification` joined with `ticker_symbol`."
+    ),
+)
 async def get_stocks_by_basic_industry_paginated(
     basic_ind_code: Optional[str] = Query(
         None,
@@ -279,28 +306,29 @@ async def get_stocks_by_basic_industry_paginated(
     )
 
 
-@router.put("/stocks/{company_id}", response_model=CompanyClassificationUpdateResponse)
+@router.put(
+    "/stocks/{company_id}",
+    response_model=CompanyClassificationUpdateResponse,
+    summary="Update stock's basic industry",
+    description="Updates only the `basic_ind_code` for a stock. Requires `company_name` to match the existing record as a safety check.",
+)
 async def update_stock_classification(
     payload: CompanyClassificationUpdateRequest,
     company_id: int = Path(..., ge=1, description="Company ID"),
     db: AsyncSession = Depends(get_db_session),
 ) -> CompanyClassificationUpdateResponse:
-    """Update basic_ind_code and market_cap_category for one company."""
+    """Update basic_ind_code for one company."""
     try:
         updated_row = await update_stock_classification_by_company_id(
             db=db,
             company_id=company_id,
             company_name=payload.company_name,
             basic_ind_code=payload.basic_ind_code,
-            market_cap_category=payload.market_cap_category,
         )
     except CompanyClassificationNameMismatchError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except CompanyClassificationUpdateError:
-        raise HTTPException(
-            status_code=500,
-            detail="Unable to update stock classification",
-        )
+        raise HTTPException(status_code=500, detail="Unable to update stock classification")
 
     if updated_row is None:
         raise HTTPException(status_code=404, detail="Company not found")

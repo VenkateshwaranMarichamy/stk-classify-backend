@@ -17,7 +17,7 @@ class StockProfileResponse(BaseModel):
     associated_brands: Optional[List[str]]
     business_group: Optional[str]
     information: Optional[str]
-    risk_level: Optional[str]
+    business_risk_level: Optional[str]
     location: Optional[List[str]]
     ownership_type: Optional[str]
     keynotes: Optional[List[str]]
@@ -35,7 +35,7 @@ class StockProfilePatchRequest(BaseModel):
     associated_brands: Optional[List[str]] = None
     business_group: Optional[str] = None
     information: Optional[str] = None
-    risk_level: Optional[str] = None
+    business_risk_level: Optional[str] = None
     location: Optional[List[str]] = None
     ownership_type: Optional[OwnershipType] = None
     keynotes: Optional[List[str]] = None
@@ -46,7 +46,7 @@ class StockProfilePatchRequest(BaseModel):
     index_stock: Optional[List[str]] = None
     cutting_edge_products: Optional[List[str]] = None
 
-    @field_validator("business_group", "information", "risk_level", mode="before")
+    @field_validator("business_group", "information", "business_risk_level", mode="before")
     @classmethod
     def strip_strings(cls, v: Optional[str]) -> Optional[str]:
         return v.strip() if isinstance(v, str) else v

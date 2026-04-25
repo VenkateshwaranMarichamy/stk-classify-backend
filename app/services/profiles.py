@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 _SELECT = """
     SELECT
         stock_id, stock_name, associated_brands, business_group,
-        information, risk_level, location, ownership_type,
+        information, business_risk_level, location, ownership_type,
         keynotes, clients, parent_companies, subsidiaries,
         products, index_stock, cutting_edge_products
     FROM classification.stock_profiles
@@ -42,7 +42,7 @@ async def patch_profile(
     associated_brands: Optional[list[str]],
     business_group: Optional[str],
     information: Optional[str],
-    risk_level: Optional[str],
+    business_risk_level: Optional[str],
     location: Optional[list[str]],
     ownership_type: Optional[str],
     keynotes: Optional[list[str]],
@@ -64,7 +64,7 @@ async def patch_profile(
             associated_brands    = COALESCE(:associated_brands,    associated_brands),
             business_group       = COALESCE(:business_group,       business_group),
             information          = COALESCE(:information,          information),
-            risk_level           = COALESCE(:risk_level,           risk_level),
+            business_risk_level  = COALESCE(:business_risk_level,  business_risk_level),
             location             = COALESCE(:location,             location),
             ownership_type       = COALESCE(:ownership_type,       ownership_type),
             keynotes             = COALESCE(:keynotes,             keynotes),
@@ -78,7 +78,7 @@ async def patch_profile(
         WHERE stock_id = :stock_id
         RETURNING
             stock_id, stock_name, associated_brands, business_group,
-            information, risk_level, location, ownership_type,
+            information, business_risk_level, location, ownership_type,
             keynotes, clients, parent_companies, subsidiaries,
             products, index_stock, cutting_edge_products
         """
@@ -91,7 +91,7 @@ async def patch_profile(
                 "associated_brands": associated_brands,
                 "business_group": business_group,
                 "information": information,
-                "risk_level": risk_level,
+                "business_risk_level": business_risk_level,
                 "location": location,
                 "ownership_type": ownership_type,
                 "keynotes": keynotes,

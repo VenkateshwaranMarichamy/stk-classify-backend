@@ -44,7 +44,7 @@ async def update_profile(
             associated_brands=payload.associated_brands,
             business_group=payload.business_group,
             information=payload.information,
-            risk_level=payload.risk_level,
+            business_risk_level=payload.business_risk_level,
             location=payload.location,
             ownership_type=payload.ownership_type,
             keynotes=payload.keynotes,

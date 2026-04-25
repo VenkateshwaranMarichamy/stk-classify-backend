@@ -38,7 +38,6 @@ class CompanyClassificationUpdateRow(TypedDict):
     company_id: int
     company_name: str
     basic_ind_code: str
-    market_cap_category: str
 
 
 async def fetch_stocks_by_basic_ind_code(
@@ -65,10 +64,7 @@ async def fetch_stocks_by_basic_ind_code(
     try:
         result = await db.execute(stmt, {"basic_ind_code": basic_ind_code})
     except SQLAlchemyError as exc:
-        logger.exception(
-            "Failed to query stocks for basic_ind_code=%s",
-            basic_ind_code,
-        )
+        logger.exception("Failed to query stocks for basic_ind_code=%s", basic_ind_code)
         raise CompanyClassificationQueryError from exc
 
     return [
@@ -118,10 +114,7 @@ async def fetch_stocks_by_basic_ind_code_paginated(
     )
 
     try:
-        total_result = await db.execute(
-            count_stmt,
-            {"basic_ind_code": basic_ind_code},
-        )
+        total_result = await db.execute(count_stmt, {"basic_ind_code": basic_ind_code})
         total = int(total_result.scalar() or 0)
 
         if total == 0:
@@ -129,17 +122,10 @@ async def fetch_stocks_by_basic_ind_code_paginated(
 
         result = await db.execute(
             rows_stmt,
-            {
-                "basic_ind_code": basic_ind_code,
-                "limit": limit,
-                "offset": offset,
-            },
+            {"basic_ind_code": basic_ind_code, "limit": limit, "offset": offset},
         )
     except SQLAlchemyError as exc:
-        logger.exception(
-            "Failed to query paginated stocks for basic_ind_code=%s",
-            basic_ind_code,
-        )
+        logger.exception("Failed to query paginated stocks for basic_ind_code=%s", basic_ind_code)
         raise CompanyClassificationQueryError from exc
 
     rows = [
@@ -160,9 +146,8 @@ async def update_stock_classification_by_company_id(
     company_id: int,
     company_name: str,
     basic_ind_code: str,
-    market_cap_category: str,
 ) -> CompanyClassificationUpdateRow | None:
-    """Update classification fields for one company by company_id."""
+    """Update basic_ind_code for one company by company_id."""
     lookup_stmt = text(
         """
         SELECT company_name
@@ -175,14 +160,9 @@ async def update_stock_classification_by_company_id(
         UPDATE classification.company_classification
         SET
             basic_ind_code = :basic_ind_code,
-            market_cap_category = :market_cap_category,
             updated_at = NOW()
         WHERE company_id = :company_id
-        RETURNING
-            company_id,
-            company_name,
-            basic_ind_code,
-            market_cap_category
+        RETURNING company_id, company_name, basic_ind_code
         """
     )
 
@@ -199,19 +179,14 @@ async def update_stock_classification_by_company_id(
 
         updated_result = await db.execute(
             update_stmt,
-            {
-                "company_id": company_id,
-                "basic_ind_code": basic_ind_code,
-                "market_cap_category": market_cap_category,
-            },
+            {"company_id": company_id, "basic_ind_code": basic_ind_code},
         )
         updated = updated_result.mappings().one_or_none()
     except CompanyClassificationNameMismatchError:
         raise
     except SQLAlchemyError as exc:
         logger.exception(
-            "Failed to update stock classification for company_id=%s",
-            company_id,
+            "Failed to update stock classification for company_id=%s", company_id
         )
         raise CompanyClassificationUpdateError from exc
 
@@ -222,5 +197,4 @@ async def update_stock_classification_by_company_id(
         company_id=updated["company_id"],
         company_name=updated["company_name"],
         basic_ind_code=updated["basic_ind_code"],
-        market_cap_category=updated["market_cap_category"],
     )

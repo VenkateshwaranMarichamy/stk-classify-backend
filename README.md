@@ -83,7 +83,7 @@ scripts/        seed scripts
 | GET | `/api/classification/basic-industries/{basic_ind_code}` | Get one basic industry |
 | GET | `/api/classification/stocks` | Stocks for a basic industry code (`?basic_ind_code=`) — active only |
 | GET | `/api/classification/stocks/paginated` | Paginated version (`?basic_ind_code=`, `?page=`, `?page_size=`) |
-| PUT | `/api/classification/stocks/{company_id}` | Update `basic_ind_code` and `market_cap_category` for a stock |
+| PUT | `/api/classification/stocks/{company_id}` | Update `basic_ind_code` only for a stock (requires `company_name` to match as safety check) |
 
 ---
 
@@ -91,7 +91,7 @@ scripts/        seed scripts
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/stocks/` | Paginated stock list. Filters: `?is_active=`, `?basic_ind_code=`, `?exchange=`, `?market_cap_category=` |
+| GET | `/api/stocks/` | Paginated stock list (all stocks including inactive). Filters: `?is_active=`, `?basic_ind_code=`, `?exchange=`, `?market_cap_category=`. Returns ticker + classification detail. |
 | GET | `/api/stocks/unclassified` | All stocks not yet in `company_classification` |
 | GET | `/api/stocks/{stock_id}` | Full stock detail — ticker + classification info (active or inactive) |
 | POST | `/api/stocks/{stock_id}/classify` | Classify a stock — inserts into `company_classification` and creates a `stock_profiles` skeleton row (atomic) |
@@ -116,7 +116,7 @@ Returns `201` on success, `409` if already classified.
 | PATCH | `/api/profiles/{stock_id}` | Partial update — send only fields to change |
 
 **PATCH `/api/profiles/{stock_id}` patchable fields:**
-`associated_brands`, `business_group`, `information`, `risk_level`, `location`,
+`associated_brands`, `business_group`, `information`, `business_risk_level`, `location`,
 `ownership_type`, `keynotes`, `clients`, `parent_companies`, `subsidiaries`,
 `products`, `index_stock`, `cutting_edge_products`
 
