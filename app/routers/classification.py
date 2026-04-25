@@ -324,6 +324,11 @@ async def update_stock_classification(
             company_id=company_id,
             company_name=payload.company_name,
             basic_ind_code=payload.basic_ind_code,
+            market_cap_category=payload.market_cap_category,
+            tech_risk=payload.tech_risk,
+            fund_risk=payload.fund_risk,
+            revenue_size=payload.revenue_size,
+            comments=payload.comments,
         )
     except CompanyClassificationNameMismatchError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

@@ -1,6 +1,6 @@
 """Pydantic schemas for classification API."""
 
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -61,6 +61,9 @@ class StockByBasicIndustryItem(BaseModel):
     company_name: str
     comments: str | None
     market_cap_category: str | None
+    tech_risk: str | None
+    fund_risk: str | None
+    revenue_size: str | None
 
 
 class StocksByBasicIndustryResponse(BaseModel):
@@ -83,10 +86,15 @@ class PaginatedStocksByBasicIndustryResponse(BaseModel):
 
 
 class CompanyClassificationUpdateRequest(BaseModel):
-    """Payload for updating basic_ind_code for a stock."""
+    """Payload for updating classification fields for a stock."""
 
     company_name: str
     basic_ind_code: str
+    market_cap_category: Optional[str] = None
+    tech_risk: Optional[str] = None
+    fund_risk: Optional[str] = None
+    revenue_size: Optional[str] = None
+    comments: Optional[str] = None
 
     @field_validator("company_name", "basic_ind_code")
     @classmethod
@@ -96,6 +104,16 @@ class CompanyClassificationUpdateRequest(BaseModel):
             raise ValueError("must not be empty")
         return value
 
+    @field_validator("market_cap_category", "tech_risk", "fund_risk", "revenue_size", mode="before")
+    @classmethod
+    def strip_optional(cls, value: str | None) -> str | None:
+        return value.strip().upper() if isinstance(value, str) else value
+
+    @field_validator("comments", mode="before")
+    @classmethod
+    def strip_comments(cls, value: str | None) -> str | None:
+        return value.strip() if isinstance(value, str) else value
+
 
 class CompanyClassificationUpdateResponse(BaseModel):
     """Updated stock classification row."""
@@ -103,6 +121,11 @@ class CompanyClassificationUpdateResponse(BaseModel):
     company_id: int
     company_name: str
     basic_ind_code: str
+    market_cap_category: str | None
+    tech_risk: str | None
+    fund_risk: str | None
+    revenue_size: str | None
+    comments: str | None
 
 
 class ListEnvelope(BaseModel):

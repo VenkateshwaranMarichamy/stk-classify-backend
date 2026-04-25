@@ -18,6 +18,9 @@ class CompanyClassificationRow(TypedDict):
     company_name: str
     comments: str | None
     market_cap_category: str | None
+    tech_risk: str | None
+    fund_risk: str | None
+    revenue_size: str | None
 
 
 class CompanyClassificationQueryError(RuntimeError):
@@ -38,6 +41,10 @@ class CompanyClassificationUpdateRow(TypedDict):
     company_id: int
     company_name: str
     basic_ind_code: str
+    market_cap_category: str | None
+    tech_risk: str | None
+    fund_risk: str | None
+    revenue_size: str | None
 
 
 async def fetch_stocks_by_basic_ind_code(
@@ -51,7 +58,10 @@ async def fetch_stocks_by_basic_ind_code(
             company_id,
             company_name,
             comments,
-            market_cap_category
+            market_cap_category,
+            tech_risk,
+            fund_risk,
+            revenue_size
         FROM classification.company_classification
         WHERE basic_ind_code = :basic_ind_code
           AND company_id IN (
@@ -73,6 +83,9 @@ async def fetch_stocks_by_basic_ind_code(
             company_name=row["company_name"],
             comments=row["comments"],
             market_cap_category=row["market_cap_category"],
+            tech_risk=row["tech_risk"],
+            fund_risk=row["fund_risk"],
+            revenue_size=row["revenue_size"],
         )
         for row in result.mappings().all()
     ]
@@ -102,7 +115,10 @@ async def fetch_stocks_by_basic_ind_code_paginated(
             company_id,
             company_name,
             comments,
-            market_cap_category
+            market_cap_category,
+            tech_risk,
+            fund_risk,
+            revenue_size
         FROM classification.company_classification
         WHERE basic_ind_code = :basic_ind_code
           AND company_id IN (
@@ -134,6 +150,9 @@ async def fetch_stocks_by_basic_ind_code_paginated(
             company_name=row["company_name"],
             comments=row["comments"],
             market_cap_category=row["market_cap_category"],
+            tech_risk=row["tech_risk"],
+            fund_risk=row["fund_risk"],
+            revenue_size=row["revenue_size"],
         )
         for row in result.mappings().all()
     ]
@@ -146,8 +165,13 @@ async def update_stock_classification_by_company_id(
     company_id: int,
     company_name: str,
     basic_ind_code: str,
+    market_cap_category: str | None,
+    tech_risk: str | None,
+    fund_risk: str | None,
+    revenue_size: str | None,
+    comments: str | None,
 ) -> CompanyClassificationUpdateRow | None:
-    """Update basic_ind_code for one company by company_id."""
+    """Update classification fields for one company by company_id."""
     lookup_stmt = text(
         """
         SELECT company_name
@@ -159,10 +183,17 @@ async def update_stock_classification_by_company_id(
         """
         UPDATE classification.company_classification
         SET
-            basic_ind_code = :basic_ind_code,
-            updated_at = NOW()
+            basic_ind_code      = :basic_ind_code,
+            market_cap_category = COALESCE(:market_cap_category, market_cap_category),
+            tech_risk           = COALESCE(:tech_risk,           tech_risk),
+            fund_risk           = COALESCE(:fund_risk,           fund_risk),
+            revenue_size        = COALESCE(:revenue_size,        revenue_size),
+            comments            = COALESCE(:comments,            comments),
+            updated_at          = NOW()
         WHERE company_id = :company_id
-        RETURNING company_id, company_name, basic_ind_code
+        RETURNING
+            company_id, company_name, basic_ind_code,
+            market_cap_category, tech_risk, fund_risk, revenue_size, comments
         """
     )
 
@@ -179,7 +210,15 @@ async def update_stock_classification_by_company_id(
 
         updated_result = await db.execute(
             update_stmt,
-            {"company_id": company_id, "basic_ind_code": basic_ind_code},
+            {
+                "company_id": company_id,
+                "basic_ind_code": basic_ind_code,
+                "market_cap_category": market_cap_category,
+                "tech_risk": tech_risk,
+                "fund_risk": fund_risk,
+                "revenue_size": revenue_size,
+                "comments": comments,
+            },
         )
         updated = updated_result.mappings().one_or_none()
     except CompanyClassificationNameMismatchError:
@@ -197,4 +236,9 @@ async def update_stock_classification_by_company_id(
         company_id=updated["company_id"],
         company_name=updated["company_name"],
         basic_ind_code=updated["basic_ind_code"],
+        market_cap_category=updated["market_cap_category"],
+        tech_risk=updated["tech_risk"],
+        fund_risk=updated["fund_risk"],
+        revenue_size=updated["revenue_size"],
+        comments=updated["comments"],
     )
