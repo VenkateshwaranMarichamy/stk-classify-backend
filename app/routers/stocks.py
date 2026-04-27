@@ -39,26 +39,20 @@ router = APIRouter()
 @router.get(
     "/",
     response_model=StockListResponse,
-    summary="List all stocks",
+    summary="List active stocks",
     description=(
-        "Returns a paginated list of all stocks from `ticker_symbol` joined with "
-        "`company_classification` and `basic_industries`. "
-        "Use this to browse or search the full stock universe. "
-        "Filters: `is_active`, `basic_ind_code`, `exchange`, `market_cap_category`. "
-        "Unlike `/api/classification/stocks`, this endpoint includes inactive stocks by default "
-        "and returns richer ticker + classification detail per stock."
+        "Returns a paginated list of active stocks (`is_active = true`) from `ticker_symbol` "
+        "joined with `company_classification` and `basic_industries`. "
+        "Optionally filter by `basic_ind_code`."
     ),
 )
 async def list_stocks(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
     basic_ind_code: Optional[str] = Query(None, description="Filter by basic industry code"),
-    is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    exchange: Optional[str] = Query(None, description="Filter by exchange, e.g. NSE, BSE"),
-    market_cap_category: Optional[str] = Query(None, description="Filter by market cap category"),
     db: AsyncSession = Depends(get_db_session),
 ) -> StockListResponse:
-    """Return paginated list of stocks with optional filters."""
+    """Return paginated list of active stocks."""
     offset = (page - 1) * page_size
 
     try:
@@ -67,9 +61,6 @@ async def list_stocks(
             offset=offset,
             limit=page_size,
             basic_ind_code=basic_ind_code.strip() if basic_ind_code else None,
-            is_active=is_active,
-            exchange=exchange.strip() if exchange else None,
-            market_cap_category=market_cap_category.strip() if market_cap_category else None,
         )
     except StockQueryError:
         raise HTTPException(status_code=500, detail="Failed to fetch stocks")

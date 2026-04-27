@@ -34,6 +34,9 @@ _SELECT = """
         cc.basic_ind_code,
         bi.basic_industry_name,
         cc.market_cap_category,
+        cc.tech_risk,
+        cc.fund_risk,
+        cc.revenue_size,
         cc.comments
     FROM classification.ticker_symbol ts
     LEFT JOIN classification.company_classification cc
@@ -60,29 +63,14 @@ async def fetch_stocks(
     offset: int,
     limit: int,
     basic_ind_code: Optional[str] = None,
-    is_active: Optional[bool] = None,
-    exchange: Optional[str] = None,
-    market_cap_category: Optional[str] = None,
 ) -> tuple[list[dict], int]:
-    """Return paginated stock list with optional filters."""
-    filters = ["1=1"]
+    """Return paginated active stocks with optional basic_ind_code filter."""
+    filters = ["ts.is_active = true"]
     params: dict = {"limit": limit, "offset": offset}
 
     if basic_ind_code is not None:
         filters.append("cc.basic_ind_code = :basic_ind_code")
         params["basic_ind_code"] = basic_ind_code
-
-    if is_active is not None:
-        filters.append("ts.is_active = :is_active")
-        params["is_active"] = is_active
-
-    if exchange is not None:
-        filters.append("ts.exchange = :exchange")
-        params["exchange"] = exchange.upper()
-
-    if market_cap_category is not None:
-        filters.append("cc.market_cap_category = :market_cap_category")
-        params["market_cap_category"] = market_cap_category.upper()
 
     where = "WHERE " + " AND ".join(filters)
 
@@ -179,7 +167,8 @@ async def fetch_unclassified_stocks(
         """
         SELECT id, name, trading_symbol
         FROM classification.ticker_symbol
-        WHERE id NOT IN (
+        WHERE is_active = true
+          AND id NOT IN (
             SELECT company_id FROM classification.company_classification
         )
         ORDER BY id

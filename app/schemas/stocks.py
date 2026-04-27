@@ -29,6 +29,9 @@ class StockDetailResponse(BaseModel):
     basic_ind_code: Optional[str]
     basic_industry_name: Optional[str]
     market_cap_category: Optional[str]
+    tech_risk: Optional[str]
+    fund_risk: Optional[str]
+    revenue_size: Optional[str]
     comments: Optional[str]
 
 
