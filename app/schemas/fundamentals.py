@@ -1,16 +1,26 @@
 """Pydantic schemas for fundamentals API."""
 
-from typing import List, Literal, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
+
+
+# ── Financials ───────────────────────────────────────────────────────────────
+
+class PeerYearItem(BaseModel):
+    """A single available year + period type for a peer group."""
+
+    financial_year: int
+    period_type: Optional[str]
 
 
 class PeerYearsResponse(BaseModel):
     """Available financial years for a basic industry peer group."""
 
     basic_ind_code: str
-    years: List[str]
-    default_year: str
+    years: List[PeerYearItem]
+    default_year: int
+    default_period_type: str
 
 
 class PeerRow(BaseModel):
@@ -91,12 +101,23 @@ class PeersResponse(BaseModel):
 
     basic_ind_code: str
     financial_year: int
+    period_type: str
     page: int
     page_size: int
     total: int
     sort_by: str
     sort_dir: str
     rows: List[PeerRow]
+
+
+# ── Valuation ────────────────────────────────────────────────────────────────
+
+class ValuationYearsResponse(BaseModel):
+    """Available financial years for valuation data (plain list — no period_type)."""
+
+    basic_ind_code: str
+    years: List[str]
+    default_year: str
 
 
 class ValuationRow(BaseModel):

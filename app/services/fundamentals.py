@@ -53,18 +53,18 @@ class FundamentalsQueryError(RuntimeError):
 async def fetch_peer_years(
     db: AsyncSession,
     basic_ind_code: str,
-) -> list[str]:
-    """Return distinct financial_year values for a basic industry, newest first."""
+) -> list[dict]:
+    """Return distinct financial_year + period_type for a basic industry, newest first."""
     stmt = text(
         """
-        SELECT DISTINCT f.financial_year
+        SELECT DISTINCT f.financial_year, f.period_type
         FROM fundamentals.stock_fundamentals_annual_display f
         WHERE f.basic_ind_code = :basic_ind_code
           AND f.financial_year IS NOT NULL
           AND f.stock_id IN (
               SELECT id FROM classification.ticker_symbol WHERE is_active = true
           )
-        ORDER BY f.financial_year DESC
+        ORDER BY f.financial_year DESC, f.period_type
         """
     )
     try:
@@ -73,7 +73,7 @@ async def fetch_peer_years(
         logger.exception("Failed to fetch peer years for basic_ind_code=%s", basic_ind_code)
         raise FundamentalsQueryError from exc
 
-    return [str(row[0]) for row in result.fetchall()]
+    return [{"financial_year": row[0], "period_type": row[1]} for row in result.fetchall()]
 
 
 async def fetch_stock_fundamentals(
@@ -102,12 +102,13 @@ async def fetch_peers(
     db: AsyncSession,
     basic_ind_code: str,
     financial_year: int,
+    period_type: str,
     offset: int,
     limit: int,
     sort_by: str,
     sort_dir: str,
 ) -> tuple[list[dict], int]:
-    """Return paginated peer rows and total count for a basic industry + year."""
+    """Return paginated peer rows and total count for a basic industry + year + period_type."""
     safe_sort_by = sort_by if sort_by in SORTABLE_COLUMNS else DEFAULT_SORT
     safe_sort_dir = "DESC" if sort_dir.upper() == "DESC" else "ASC"
 
@@ -117,6 +118,7 @@ async def fetch_peers(
         FROM fundamentals.stock_fundamentals_annual_display
         WHERE basic_ind_code = :basic_ind_code
           AND financial_year = :financial_year
+          AND period_type = :period_type
           AND stock_id IN (
               SELECT id FROM classification.ticker_symbol WHERE is_active = true
           )
@@ -129,6 +131,7 @@ async def fetch_peers(
         FROM fundamentals.stock_fundamentals_annual_display
         WHERE basic_ind_code = :basic_ind_code
           AND financial_year = :financial_year
+          AND period_type = :period_type
           AND stock_id IN (
               SELECT id FROM classification.ticker_symbol WHERE is_active = true
           )
@@ -140,7 +143,7 @@ async def fetch_peers(
     try:
         total_result = await db.execute(
             count_stmt,
-            {"basic_ind_code": basic_ind_code, "financial_year": financial_year},
+            {"basic_ind_code": basic_ind_code, "financial_year": financial_year, "period_type": period_type},
         )
         total = int(total_result.scalar() or 0)
 
@@ -152,15 +155,15 @@ async def fetch_peers(
             {
                 "basic_ind_code": basic_ind_code,
                 "financial_year": financial_year,
+                "period_type": period_type,
                 "limit": limit,
                 "offset": offset,
             },
         )
     except SQLAlchemyError as exc:
         logger.exception(
-            "Failed to fetch peers for basic_ind_code=%s year=%s",
-            basic_ind_code,
-            financial_year,
+            "Failed to fetch peers for basic_ind_code=%s year=%s period_type=%s",
+            basic_ind_code, financial_year, period_type,
         )
         raise FundamentalsQueryError from exc
 

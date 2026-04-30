@@ -9,12 +9,14 @@ from app.core.logger import get_logger
 from app.database import get_db_session
 from app.schemas.fundamentals import (
     PeerRow,
+    PeerYearItem,
     PeerYearsResponse,
     PeersResponse,
     StockFundamentalsResponse,
     StockValuationResponse,
     ValuationPeersResponse,
     ValuationRow,
+    ValuationYearsResponse,
 )
 from app.services.fundamentals import (
     DEFAULT_SORT,
@@ -100,10 +102,14 @@ async def get_peer_years(
             detail="No fundamentals data found for the given basic_ind_code",
         )
 
+    annual_years = [y for y in years if y["period_type"] == "annual"]
+    default = annual_years[0] if annual_years else years[0]
+
     return PeerYearsResponse(
         basic_ind_code=basic_ind_code,
-        years=years,
-        default_year=years[0],
+        years=[PeerYearItem(**y) for y in years],
+        default_year=default["financial_year"],
+        default_period_type=default["period_type"],
     )
 
 
@@ -113,8 +119,8 @@ async def get_peer_years(
     summary="Peer financials comparison table",
     description=(
         "Returns a paginated, sortable table of annual financial metrics for all active stocks "
-        "in the given `basic_ind_code` and `financial_year`. "
-        "Use `/peer-years` first to get available years. "
+        "in the given `basic_ind_code`, `financial_year`, and `period_type`. "
+        "Use `/peer-years` first to get available year + period_type combinations. "
         "Only active stocks (`ticker_symbol.is_active = true`) are included. "
         f"Sortable columns: `{'`, `'.join(sorted(SORTABLE_COLUMNS))}`."
     ),
@@ -122,13 +128,14 @@ async def get_peer_years(
 async def get_peers(
     basic_ind_code: str = Query(..., description="Basic industry code"),
     financial_year: int = Query(..., description="Financial year, e.g. 2025"),
+    period_type: str = Query("annual", description="Period type, e.g. 'annual' or 'ttm'"),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
     sort_by: str = Query(DEFAULT_SORT, description="Column to sort by"),
     sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db_session),
 ) -> PeersResponse:
-    """Return paginated peer financials for a basic industry and financial year."""
+    """Return paginated peer financials for a basic industry, financial year, and period type."""
     basic_ind_code = basic_ind_code.strip()
     if not basic_ind_code:
         raise HTTPException(status_code=400, detail="basic_ind_code is required")
@@ -140,6 +147,7 @@ async def get_peers(
             db=db,
             basic_ind_code=basic_ind_code,
             financial_year=financial_year,
+            period_type=period_type.strip().lower(),
             offset=offset,
             limit=page_size,
             sort_by=sort_by,
@@ -151,12 +159,13 @@ async def get_peers(
     if total == 0:
         raise HTTPException(
             status_code=404,
-            detail="No data found for the given basic_ind_code and financial_year",
+            detail="No data found for the given basic_ind_code, financial_year, and period_type",
         )
 
     return PeersResponse(
         basic_ind_code=basic_ind_code,
         financial_year=financial_year,
+        period_type=period_type.strip().lower(),
         page=page,
         page_size=page_size,
         total=total,
@@ -170,7 +179,7 @@ async def get_peers(
 
 @router.get(
     "/valuation/years",
-    response_model=PeerYearsResponse,
+    response_model=ValuationYearsResponse,
     summary="Available valuation years for a peer group",
     description=(
         "Returns the distinct financial years for which valuation metrics exist "
@@ -182,7 +191,7 @@ async def get_peers(
 async def get_valuation_years(
     basic_ind_code: str = Query(..., description="Basic industry code"),
     db: AsyncSession = Depends(get_db_session),
-) -> PeerYearsResponse:
+) -> ValuationYearsResponse:
     """Return distinct financial years available in valuation data for a basic industry."""
     basic_ind_code = basic_ind_code.strip()
     if not basic_ind_code:
@@ -199,7 +208,7 @@ async def get_valuation_years(
             detail="No valuation data found for the given basic_ind_code",
         )
 
-    return PeerYearsResponse(
+    return ValuationYearsResponse(
         basic_ind_code=basic_ind_code,
         years=years,
         default_year=years[0],
