@@ -97,3 +97,71 @@ class PeersResponse(BaseModel):
     sort_by: str
     sort_dir: str
     rows: List[PeerRow]
+
+
+class ValuationRow(BaseModel):
+    """Single stock row in the valuation metrics table."""
+
+    stock_id: int
+    stock: Optional[str]
+    financial_year: Optional[int]
+    financial_date: Optional[str]
+
+    # Pricing
+    current_price: Optional[float]
+    market_cap: Optional[float]
+    enterprise_value: Optional[float]
+
+    # Multiples
+    trailing_pe: Optional[float]
+    forward_pe: Optional[float]
+    peg_ratio: Optional[float]
+    price_to_sales: Optional[float]
+    price_to_book: Optional[float]
+    enterprise_to_revenue: Optional[float]
+    enterprise_to_ebitda: Optional[float]
+
+    # Per share
+    trailing_eps: Optional[float]
+    forward_eps: Optional[float]
+    book_value: Optional[float]
+    total_cash_per_share: Optional[float]
+
+    # Ratios
+    current_ratio: Optional[float]
+    quick_ratio: Optional[float]
+    debt_to_equity: Optional[float]
+    return_on_assets: Optional[float]
+    return_on_equity: Optional[float]
+
+    # Dividends
+    dividend_yield: Optional[float]
+    payout_ratio: Optional[float]
+
+    # Shares
+    shares_outstanding: Optional[float]
+    float_shares: Optional[float]
+    held_percent_insiders: Optional[float]
+    held_percent_institutions: Optional[float]
+
+
+class ValuationPeersResponse(BaseModel):
+    """Paginated valuation peer comparison response."""
+
+    basic_ind_code: str
+    financial_year: int
+    page: int
+    page_size: int
+    total: int
+    sort_by: str
+    sort_dir: str
+    rows: List[ValuationRow]
+
+
+class StockValuationResponse(BaseModel):
+    """All annual valuation metrics for a single stock."""
+
+    stock_id: int
+    stock: Optional[str]
+    count: int
+    rows: List[ValuationRow]
